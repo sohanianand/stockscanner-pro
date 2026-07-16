@@ -1,57 +1,93 @@
-from sqlalchemy import and_
-from sqlalchemy.orm import Session
+from sqlalchemy import asc
+from sqlalchemy import desc
 
 from app.models.latest_indicator import LatestIndicator
+from app.repositories.scanner_repository import ScannerRepository
+from app.core.scanner_fields import SCANNER_FIELDS
 
-
-FIELD_MAP = {
-    "close": LatestIndicator.close,
-    "ema20": LatestIndicator.ema20,
-    "ema50": LatestIndicator.ema50,
-    "sma20": LatestIndicator.sma20,
-    "rsi": LatestIndicator.rsi,
-    "macd": LatestIndicator.macd,
-    "macd_signal": LatestIndicator.macd_signal,
+OPERATORS = {
+    "=": lambda c, v: c == v,
+    ">": lambda c, v: c > v,
+    "<": lambda c, v: c < v,
+    ">=": lambda c, v: c >= v,
+    "<=": lambda c, v: c <= v,
+    "!=": lambda c, v: c != v,
 }
 
 
-def run_scan(filters, db: Session):
+def run_scan(request, db):
 
-    query = db.query(LatestIndicator)
+    repo = ScannerRepository(db)
 
-    conditions = []
+    expressions = []
 
-    for f in filters:
+    for f in request.filters:
 
-        if f.field not in FIELD_MAP:
-            continue
+        if not hasattr(LatestIndicator, f.field):
 
-        left = FIELD_MAP[f.field]
+            raise ValueError(
+                f"Unknown field: {f.field}"
+            )
 
-        if isinstance(f.value, str) and f.value in FIELD_MAP:
-            right = FIELD_MAP[f.value]
+        column = SCANNER_FIELDS.get(f.field)
+
+        if column is None:
+
+           raise ValueError(
+                f"Unknown scanner field {f.field}"
+           ) 
+
+        expressions.append(
+            OPERATORS[f.operator.value](
+                column,
+                f.value,
+            )
+        )
+
+    query = repo.scan(
+        expressions,
+        use_or=request.condition.value == "OR",
+    )
+
+    if request.sort:
+
+        column = getattr(
+            LatestIndicator,
+            request.sort.field,
+        )
+
+        if request.sort.direction.value == "asc":
+
+            query = query.order_by(
+                asc(column)
+            )
+
         else:
-            right = f.value
 
-        if f.operator == ">":
-            conditions.append(left > right)
+            query = query.order_by(
+                desc(column)
+            )
 
-        elif f.operator == "<":
-            conditions.append(left < right)
+    total = query.count()
 
-        elif f.operator == "=":
-            conditions.append(left == right)
+    rows = (
+        query.offset(
+            (request.page - 1)
+            * request.page_size
+        )
+        .limit(
+            request.page_size
+        )
+        .all()
+    )
 
-        elif f.operator == ">=":
-            conditions.append(left >= right)
+    return {
 
-        elif f.operator == "<=":
-            conditions.append(left <= right)
+        "total": total,
 
-        elif f.operator == "!=":
-            conditions.append(left != right)
+        "page": request.page,
 
-    if conditions:
-        query = query.filter(and_(*conditions))
+        "page_size": request.page_size,
 
-    return query.all()
+        "results": rows,
+    }

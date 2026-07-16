@@ -5,9 +5,12 @@ from sqlalchemy.orm import Session
 
 from app.models.stock_price import StockPrice
 from app.models.indicator import Indicator
+from app.repositories.indicator_repository import IndicatorRepository
 
 
 def calculate_indicators(symbol: str, db: Session):
+
+    symbol = symbol.upper()
 
     prices = (
         db.query(StockPrice)
@@ -49,13 +52,15 @@ def calculate_indicators(symbol: str, db: Session):
     df["middle"] = bb.bollinger_mavg()
     df["lower"] = bb.bollinger_lband()
 
-    db.query(Indicator).filter(
-        Indicator.symbol == symbol
-    ).delete()
+    repo = IndicatorRepository(db)
+
+    repo.delete_by_symbol(symbol)
+
+    indicators = []
 
     for _, row in df.iterrows():
 
-        db.add(
+        indicators.append(
             Indicator(
                 symbol=symbol,
                 trading_date=row["date"],
@@ -73,9 +78,9 @@ def calculate_indicators(symbol: str, db: Session):
             )
         )
 
-    db.commit()
+    repo.bulk_insert(indicators)
 
     return {
         "symbol": symbol,
-        "rows": len(df)
+        "rows": len(indicators)
     }

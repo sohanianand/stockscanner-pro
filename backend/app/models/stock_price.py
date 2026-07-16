@@ -7,7 +7,6 @@ from sqlalchemy import Date
 
 from app.database.database import Base
 
-
 class StockPrice(Base):
 
     __tablename__ = "stock_prices"

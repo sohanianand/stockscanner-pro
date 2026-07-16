@@ -22,3 +22,14 @@ def scanner(
         request.filters,
         db
     )
+
+@router.post("/scan")
+def scan(
+    request: ScannerRequest,
+    db: Session = Depends(get_db),
+):
+
+    return run_scan(
+        request,
+        db,
+    )
