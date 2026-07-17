@@ -1,9 +1,11 @@
 from sqlalchemy import asc
 from sqlalchemy import desc
+import json
 
 from app.models.latest_indicator import LatestIndicator
 from app.repositories.scanner_repository import ScannerRepository
 from app.core.scanner_fields import SCANNER_FIELDS
+from app.core.redis import redis
 
 OPERATORS = {
     "=": lambda c, v: c == v,
@@ -91,3 +93,22 @@ def run_scan(request, db):
 
         "results": rows,
     }
+
+def scan(request):
+
+    cache_key = f"scan:{hash(request.json())}"
+
+    cached = redis.get(cache_key)
+
+    if cached:
+        return json.loads(cached)
+
+    result = run_scan(request)
+
+    redis.setex(
+        cache_key,
+        60,
+        json.dumps(result),
+    )
+
+    return result

@@ -1,6 +1,7 @@
 import yfinance as yf
 from sqlalchemy.orm import Session
 
+from app.core.logging import logger
 from app.models.stock_price import StockPrice
 from app.repositories.price_repository import PriceRepository
 
@@ -8,6 +9,8 @@ from app.repositories.price_repository import PriceRepository
 def download_history(symbol: str, db: Session):
 
     symbol = symbol.upper()
+
+    logger.info("Downloading {}", symbol)
 
     price_repo = PriceRepository(db)
 
@@ -19,13 +22,13 @@ def download_history(symbol: str, db: Session):
     )
 
     if history.empty:
+        logger.warning("No data found for {}", symbol)
+
         return {
             "message": f"No data found for {symbol}"
         }
 
-    existing_dates = set(
-        price_repo.get_existing_dates(symbol)
-    )
+    existing_dates = price_repo.get_existing_dates(symbol)
 
     records = []
 
@@ -52,7 +55,13 @@ def download_history(symbol: str, db: Session):
     if records:
         price_repo.bulk_insert(records)
 
+    logger.info(
+        "Inserted {} rows for {}",
+        len(records),
+        symbol,
+    )
+
     return {
         "symbol": symbol,
-        "rows_inserted": len(records)
+        "rows_inserted": len(records),
     }

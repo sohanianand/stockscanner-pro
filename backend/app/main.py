@@ -16,6 +16,9 @@ from app.api.latest_indicator import router as latest_router
 
 from app.api.tasks import router as task_router
 
+from app.api.saved_scanners import router as saved_scanner_router
+
+
 app = FastAPI(
     title="StockScanner Pro"
 )
@@ -27,6 +30,8 @@ app.include_router(indicator_router)
 app.include_router(scanner_router)
 app.include_router(latest_router)
 app.include_router(task_router)
+app.include_router(saved_scanner_router)
+
 
 @app.get("/")
 def root(): 

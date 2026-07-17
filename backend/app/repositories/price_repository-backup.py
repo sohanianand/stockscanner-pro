@@ -16,13 +16,6 @@ class PriceRepository:
         self.db.bulk_save_objects(prices)
         self.db.commit()
 
-    def bulk_insert(self, records: list[StockPrice]):
-        """
-        Bulk insert stock price records.
-        """
-        self.db.bulk_save_objects(records)
-        self.db.commit()
-
     def delete_symbol(self, symbol: str):
         """
         Delete all historical prices for a symbol.
@@ -47,18 +40,12 @@ class PriceRepository:
         )
 
         if start_date:
-            query = query.filter(
-                StockPrice.trading_date >= start_date
-            )
+            query = query.filter(StockPrice.trading_date >= start_date)
 
         if end_date:
-            query = query.filter(
-                StockPrice.trading_date <= end_date
-            )
+            query = query.filter(StockPrice.trading_date <= end_date)
 
-        return query.order_by(
-            StockPrice.trading_date.asc()
-        ).all()
+        return query.order_by(StockPrice.trading_date.asc()).all()
 
     def get_latest_price(self, symbol: str):
         """
