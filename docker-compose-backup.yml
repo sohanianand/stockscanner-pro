@@ -5,30 +5,37 @@ services:
   postgres:
     image: postgres:16
     container_name: stockscanner-postgres
-
     restart: unless-stopped
 
     environment:
-      POSTGRES_DB: stockscanner
       POSTGRES_USER: stockuser
       POSTGRES_PASSWORD: stockpassword
-
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      POSTGRES_DB: stockscanner
 
     ports:
       - "5432:5432"
 
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stockuser -d stockscanner"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:7-alpine
     container_name: stockscanner-redis
-
     restart: unless-stopped
 
     ports:
       - "6379:6379"
 
-  backend:
+    volumes:
+      - redis_data:/data
+
+  api:
     build:
       context: ./backend
 
@@ -36,18 +43,69 @@ services:
 
     restart: unless-stopped
 
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
     env_file:
       - ./backend/.env
 
-    depends_on:
-      - postgres
-      - redis
+    volumes:
+      - ./backend:/app
 
     ports:
       - "8000:8000"
+
+  celery-worker:
+    build:
+      context: ./backend
+
+    container_name: stockscanner-worker
+
+    restart: unless-stopped
+
+    command: celery -A app.tasks.celery_app.celery worker --loglevel=info
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+    env_file:
+      - ./backend/.env
+
+    volumes:
+      - ./backend:/app
+
+  celery-beat:
+    build:
+      context: ./backend
+
+    container_name: stockscanner-beat
+
+    restart: unless-stopped
+
+    command: celery -A app.tasks.celery_app.celery beat --loglevel=info
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+    env_file:
+      - ./backend/.env
 
     volumes:
       - ./backend:/app
 
 volumes:
+
   postgres_data:
+
+  redis_data:

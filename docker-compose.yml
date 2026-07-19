@@ -6,106 +6,85 @@ services:
     image: postgres:16
     container_name: stockscanner-postgres
     restart: unless-stopped
-
     environment:
+      POSTGRES_DB: stockscanner
       POSTGRES_USER: stockuser
       POSTGRES_PASSWORD: stockpassword
-      POSTGRES_DB: stockscanner
-
     ports:
       - "5432:5432"
-
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U stockuser -d stockscanner"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   redis:
     image: redis:7-alpine
     container_name: stockscanner-redis
     restart: unless-stopped
-
     ports:
       - "6379:6379"
-
-    volumes:
-      - redis_data:/data
 
   api:
     build:
       context: ./backend
-
     container_name: stockscanner-api
-
     restart: unless-stopped
-
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-
-    env_file:
-      - ./backend/.env
-
-    volumes:
-      - ./backend:/app
-
     ports:
       - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql://stockuser:stockpassword@postgres:5432/stockscanner
+      REDIS_URL: redis://redis:6379/0
+      PYTHONUNBUFFERED: "1"
 
   celery-worker:
     build:
       context: ./backend
-
     container_name: stockscanner-worker
-
+    command: celery -A app.celery_app:celery worker --loglevel=info
     restart: unless-stopped
-
-    command: celery -A app.tasks.celery_app.celery worker --loglevel=info
-
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-
-    env_file:
-      - ./backend/.env
-
     volumes:
       - ./backend:/app
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql://stockuser:stockpassword@postgres:5432/stockscanner
+      REDIS_URL: redis://redis:6379/0
 
   celery-beat:
     build:
       context: ./backend
-
     container_name: stockscanner-beat
-
+    command: celery -A app.celery_app:celery beat --loglevel=info
     restart: unless-stopped
-
-    command: celery -A app.tasks.celery_app.celery beat --loglevel=info
-
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-
-    env_file:
-      - ./backend/.env
-
     volumes:
       - ./backend:/app
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql://stockuser:stockpassword@postgres:5432/stockscanner
+      REDIS_URL: redis://redis:6379/0
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: stockscanner-frontend
+    restart: unless-stopped
+    command: npm run dev -- --host
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - api
+    environment:
+      VITE_API_URL: http://localhost:8000
 
 volumes:
-
   postgres_data:
-
-  redis_data:

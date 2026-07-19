@@ -18,6 +18,7 @@ from app.api.tasks import router as task_router
 
 from app.api.saved_scanners import router as saved_scanner_router
 
+from app.api.backtest import router as backtest_router
 
 app = FastAPI(
     title="StockScanner Pro"
@@ -31,6 +32,7 @@ app.include_router(scanner_router)
 app.include_router(latest_router)
 app.include_router(task_router)
 app.include_router(saved_scanner_router)
+app.include_router(backtest_router)
 
 
 @app.get("/")
