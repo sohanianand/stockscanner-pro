@@ -1,47 +1,53 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import {
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
 
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
-import Scanner from "../pages/Scanner";
-import Portfolio from "../pages/Portfolio";
-import Watchlist from "../pages/Watchlist";
-import Alerts from "../pages/Alerts";
-import Backtest from "../pages/Backtest";
-import Settings from "../pages/Settings";
-
-import DashboardLayout from "../layouts/DashboardLayout";
 import ProtectedRoute from "./ProtectedRoute";
 
 export default function AppRoutes() {
   return (
     <Routes>
 
-      <Route path="/login" element={<Login />} />
+      {/* Public Login Page */}
+      <Route
+        path="/login"
+        element={<Login />}
+      />
 
+      {/* Protected Home Page */}
       <Route
         path="/"
         element={
           <ProtectedRoute>
-            <DashboardLayout />
+            <Dashboard />
           </ProtectedRoute>
         }
-      >
-        <Route index element={<Dashboard />} />
+      />
 
-        <Route path="scanner" element={<Scanner />} />
+      {/* Protected Dashboard */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
 
-        <Route path="portfolio" element={<Portfolio />} />
-
-        <Route path="watchlist" element={<Watchlist />} />
-
-        <Route path="alerts" element={<Alerts />} />
-
-        <Route path="backtest" element={<Backtest />} />
-
-        <Route path="settings" element={<Settings />} />
-      </Route>
-
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Unknown Route */}
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to="/login"
+            replace
+          />
+        }
+      />
 
     </Routes>
   );

@@ -1,7 +1,7 @@
-import api from "./api";
+import api from "./client";
 
 export interface LoginRequest {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -10,22 +10,38 @@ export interface LoginResponse {
   token_type: string;
 }
 
-export const login = async (
-  request: LoginRequest
-): Promise<LoginResponse> => {
+export interface RegisterRequest {
+  username: string;
+  email: string;
+  password: string;
+}
+
+export interface RegisterResponse {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  is_active: boolean;
+}
+
+export async function login(
+  data: LoginRequest
+): Promise<LoginResponse> {
   const response = await api.post<LoginResponse>(
     "/auth/login",
-    request
+    data
   );
 
   return response.data;
-};
+}
 
-export const register = async (request: any) => {
-  const response = await api.post(
+export async function register(
+  data: RegisterRequest
+): Promise<RegisterResponse> {
+  const response = await api.post<RegisterResponse>(
     "/auth/register",
-    request
+    data
   );
 
   return response.data;
-};
+}
