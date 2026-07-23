@@ -3,23 +3,40 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 
 function App() {
-  const isAuthenticated = false; // Replace with actual auth check
+  const token = localStorage.getItem("token");
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
-
+        {/* Login Page */}
         <Route
-          path="/dashboard"
+          path="/login"
           element={
-            isAuthenticated
-              ? <Dashboard />
-              : <Navigate to="/login" replace />
+            token ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Login />
+            )
           }
         />
 
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* Dashboard */}
+        <Route
+          path="/dashboard"
+          element={
+            token ? (
+              <Dashboard />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        {/* Default */}
+        <Route
+          path="*"
+          element={<Navigate to="/login" replace />}
+        />
       </Routes>
     </BrowserRouter>
   );

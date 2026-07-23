@@ -5,23 +5,17 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface User {
+  id?: string | number;
+  username?: string;
+  name?: string;
+}
+
 export interface LoginResponse {
-  access_token: string;
-  token_type: string;
-}
-
-export interface RegisterRequest {
-  username: string;
-  email: string;
-  password: string;
-}
-
-export interface RegisterResponse {
-  id: number;
-  username: string;
-  email: string;
-  role: string;
-  is_active: boolean;
+  token?: string;
+  access_token?: string;
+  user?: User;
+  message?: string;
 }
 
 export async function login(
@@ -29,17 +23,6 @@ export async function login(
 ): Promise<LoginResponse> {
   const response = await api.post<LoginResponse>(
     "/auth/login",
-    data
-  );
-
-  return response.data;
-}
-
-export async function register(
-  data: RegisterRequest
-): Promise<RegisterResponse> {
-  const response = await api.post<RegisterResponse>(
-    "/auth/register",
     data
   );
 
